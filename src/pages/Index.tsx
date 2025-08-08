@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { useGpuHistory } from "@/hooks/useGpuHistory";
 import { usePowerHistory } from "@/hooks/usePowerHistory";
 import type { PowerPoint } from "@/hooks/usePowerHistory";
+import { Zap, Activity, Thermometer, Gauge } from "lucide-react";
 
 // Integrate power (W) over time to kWh using trapezoidal rule
 function kwhFromSeries(series: PowerPoint[]): number {
@@ -191,11 +192,15 @@ const [historyMinutes, setHistoryMinutes] = useState<number>(() => Number(localS
   const selectedGpuMain = useMemo(() => gpus.find(g => (g.uuid ?? String(g.id)) === selectedMainId), [gpus, selectedMainId]);
   const seriesMain = selectedMainId ? (history[selectedMainId] ?? []) : [];
 
+  const visibleGpuCount = gpus.length;
+  const avgUtil = useMemo(() => (visibleGpuCount ? Math.round(gpus.reduce((s, g) => s + (g.utilization || 0), 0) / visibleGpuCount) : 0), [gpus, visibleGpuCount]);
+  const avgTemp = useMemo(() => (visibleGpuCount ? Math.round(gpus.reduce((s, g) => s + (g.temperature || 0), 0) / visibleGpuCount) : 0), [gpus, visibleGpuCount]);
+
   const pageTitle = "NVIDIA SMI Dashboard";
   const description = "Monitor NVIDIA GPU utilization, memory, temperature and power in a modern dashboard.";
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen app-bg">
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={description} />
@@ -277,6 +282,46 @@ const [historyMinutes, setHistoryMinutes] = useState<number>(() => Number(localS
           </div>
         </section>
 
+        {/* KPI Section */}
+        <section aria-label="Key metrics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Card className="glass-card">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">GPUs</div>
+                <div className="text-2xl font-semibold tabular-nums">{gpus.length}</div>
+              </div>
+              <div className="rounded-md p-2 bg-secondary/60"><Gauge className="h-5 w-5" /></div>
+            </CardContent>
+          </Card>
+          <Card className="glass-card">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">Avg Util</div>
+                <div className="text-2xl font-semibold tabular-nums">{avgUtil}%</div>
+              </div>
+              <div className="rounded-md p-2 bg-secondary/60"><Activity className="h-5 w-5" /></div>
+            </CardContent>
+          </Card>
+          <Card className="glass-card">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">Total Power</div>
+                <div className="text-2xl font-semibold tabular-nums">{Math.round(totalWattsAll)} W</div>
+              </div>
+              <div className="rounded-md p-2 bg-secondary/60"><Zap className="h-5 w-5" /></div>
+            </CardContent>
+          </Card>
+          <Card className="glass-card">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <div className="text-sm text-muted-foreground">Avg Temp</div>
+                <div className="text-2xl font-semibold tabular-nums">{avgTemp}°C</div>
+              </div>
+              <div className="rounded-md p-2 bg-secondary/60"><Thermometer className="h-5 w-5" /></div>
+            </CardContent>
+          </Card>
+        </section>
+
         {hosts.length > 0 && (
           <section aria-label="Hosts List" className="container">
             <div className="text-sm text-muted-foreground mb-2">Hosts</div>
@@ -295,7 +340,7 @@ const [historyMinutes, setHistoryMinutes] = useState<number>(() => Number(localS
 
         <section aria-label="GPU Grid" className="pb-10 space-y-8">
           {energyRate > 0 ? (
-            <Card>
+            <Card className="glass-card">
               <CardHeader className="py-4">
                 <CardTitle className="text-base">Estimated Power Cost (all visible GPUs)</CardTitle>
               </CardHeader>

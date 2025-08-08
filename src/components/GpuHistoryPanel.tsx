@@ -44,7 +44,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
   }, [chartData]);
 
   return (
-    <Card className="h-full">
+    <Card className="h-full glass-card">
       <CardHeader className="py-4">
         <CardTitle className="text-base">{title}</CardTitle>
       </CardHeader>
