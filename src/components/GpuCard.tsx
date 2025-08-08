@@ -5,6 +5,7 @@ import type { GpuInfo } from "@/types/gpu";
 import type { GpuHistoryPoint } from "@/hooks/useGpuHistory";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
+import { useMemo } from "react";
 
 function pct(a: number, b: number) {
   return Math.min(100, Math.max(0, Math.round((a / b) * 100)));
@@ -18,13 +19,13 @@ function chipColorByTemp(temp: number): "default" | "secondary" | "destructive" 
 
 export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySeries?: GpuHistoryPoint[] }) {
   const memPct = pct(info.memory.used, info.memory.total);
-  const chartData = historySeries.map((p) => ({
+  const chartData = useMemo(() => historySeries.map((p) => ({
     t: p.t,
     util: p.util,
     memPct: Math.round((p.memUsed / Math.max(1, p.memTotal)) * 100),
     temp: p.temp,
     power: p.power,
-  }));
+  })), [historySeries]);
 
   return (
     <Card className="transition-transform duration-300 hover:-translate-y-0.5">
@@ -80,7 +81,7 @@ export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySe
                   <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
                   <YAxis domain={[0, 100]} tickLine={false} axisLine={false} hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="util" stroke="var(--color-util)" strokeWidth={2} fill="var(--color-util)" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="util" stroke="var(--color-util)" strokeWidth={2} fill="var(--color-util)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
                 </AreaChart>
               </ChartContainer>
 
@@ -93,7 +94,7 @@ export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySe
                   <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
                   <YAxis domain={[0, 100]} tickLine={false} axisLine={false} hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="memPct" stroke="var(--color-mem)" strokeWidth={2} fill="var(--color-mem)" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="memPct" stroke="var(--color-mem)" strokeWidth={2} fill="var(--color-mem)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
                 </AreaChart>
               </ChartContainer>
 
@@ -106,7 +107,7 @@ export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySe
                   <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
                   <YAxis domain={[0, 'auto']} tickLine={false} axisLine={false} hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="temp" stroke="var(--color-temp)" strokeWidth={2} fill="var(--color-temp)" fillOpacity={0.2} />
+                  <Area type="monotone" dataKey="temp" stroke="var(--color-temp)" strokeWidth={2} fill="var(--color-temp)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
                 </AreaChart>
               </ChartContainer>
             </div>
