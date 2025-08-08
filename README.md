@@ -1,73 +1,187 @@
-# Welcome to your Lovable project
+# GPU Monitoring Dashboard (Frontend + NVIDIA-SMI Exporter)
 
-## Project info
+A lightweight, real‑time GPU monitoring dashboard built with React/Vite + Tailwind (frontend) and a minimal Flask service that exposes NVIDIA GPU metrics via `nvidia-smi`.
 
-**URL**: https://lovable.dev/projects/64cb1c24-a2ad-45d4-a367-0c3a32a6bd01
+- Frontend: Vite (port 8080), React, TypeScript, shadcn-ui, Tailwind
+- Exporter API: Flask (port 5000), returns JSON at `/nvidia-smi.json`
 
-## How can I edit this code?
 
-There are several ways of editing your application.
+## Features
+- Live GPU metrics: utilization, memory, temperature, power, fan
+- Historical mini‑charts with auto-refresh
+- Multiple hosts monitoring (add/save hosts in UI)
+- Demo mode (mock data) for quick preview
 
-**Use Lovable**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/64cb1c24-a2ad-45d4-a367-0c3a32a6bd01) and start prompting.
+## Prerequisites
+- Node.js 18+ and npm (if running frontend locally)
+- Docker + Docker Compose v2
+- NVIDIA GPU with recent drivers and `nvidia-smi` on the host
+- NVIDIA Container Toolkit (for GPU access in Docker)
+  - Install guide: https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 
-Changes made via Lovable will be committed automatically to this repo.
 
-**Use your preferred IDE**
+## Quick Start
+You can run services separately (recommended for development) or together.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 1) Start the NVIDIA-SMI Exporter (Docker)
+```
+docker compose -f docker-compose.gpu-exporter.yml build --no-cache
+docker compose -f docker-compose.gpu-exporter.yml up -d
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+# Verify
+curl http://localhost:5000/nvidia-smi.json | jq
+```
+If you see JSON with a `gpus` array, the exporter is working.
 
-Follow these steps:
+> Note: Requires NVIDIA Container Toolkit and drivers on the host. The compose file is already configured with the necessary device reservations.
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+### 2a) Start the Frontend (Docker)
+```
+docker compose -f docker-compose.frontend.yml up -d --build
+# Open: http://localhost:8080
 ```
 
-**Edit a file directly in GitHub**
+### 2b) Start the Frontend (Local)
+```
+# Install deps
+npm i
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+# Run dev server (uses port 8080 from vite.config.ts)
+npm run dev
+# Open: http://localhost:8080
+```
 
-**Use GitHub Codespaces**
+In the app, set API URL to: `http://localhost:5000/nvidia-smi.json` and click Save. You can toggle Demo Mode to use synthetic data.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
+## Run Both via Combined Compose (optional)
+A convenience compose is provided:
+```
+docker compose up -d --build
+# Frontend: http://localhost:8080
+# Exporter: http://localhost:5000/nvidia-smi.json
+```
 
-This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## Ports
+- Frontend (Vite dev): 8080 (container and host)
+- Exporter (Flask): 5000 (container and host)
 
-## How can I deploy this project?
+If you need to change the frontend port, edit `vite.config.ts` and adjust the mapping in `docker-compose.frontend.yml` accordingly.
 
-Simply open [Lovable](https://lovable.dev/projects/64cb1c24-a2ad-45d4-a367-0c3a32a6bd01) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+## Configuration & Usage
+- API URL field: point to your exporter, e.g. `http://HOST:5000/nvidia-smi.json`
+- Demo Mode: generates dynamic mock data for showcasing
+- Refresh Interval: choose how often to refetch metrics
+- Hosts: add multiple hosts (with their exporter URLs) and switch between them
 
-Yes, you can!
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## API
+- Endpoint: `GET /nvidia-smi.json`
+- Response shape (TypeScript): `src/types/gpu.ts` (`NvidiaSmiResponse`)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+Example:
+```json
+{
+  "host": "my-server",
+  "timestamp": "2025-08-08T09:00:00.000Z",
+  "gpus": [
+    {
+      "id": 0,
+      "uuid": "GPU-...",
+      "name": "NVIDIA A100",
+      "driverVersion": "555.85",
+      "temperature": 62,
+      "utilization": 73,
+      "memory": { "used": 10240, "total": 40960 },
+      "power": { "draw": 210, "limit": 350 },
+      "fan": 45,
+      "processes": [ { "pid": 12345, "name": "python", "memory": 2048 } ]
+    }
+  ]
+}
+```
+
+
+## Redeploy / Update
+- Exporter only:
+```
+docker compose -f docker-compose.gpu-exporter.yml build --no-cache \
+  && docker compose -f docker-compose.gpu-exporter.yml up -d --force-recreate
+```
+- Frontend only:
+```
+docker compose -f docker-compose.frontend.yml up -d --build --force-recreate
+```
+- Combined:
+```
+docker compose up -d --build --force-recreate
+```
+- Logs:
+```
+docker compose -f docker-compose.gpu-exporter.yml logs -f gpu-exporter
+```
+
+
+## Development
+- Frontend
+  - `npm run dev` — Vite dev server (HMR)
+  - `npm run build` — production build to `dist/`
+  - `npm run preview` — preview production build locally
+- Exporter
+  - Python/Flask service under `server/`
+  - Local run (host with GPUs):
+    ```bash
+    cd server
+    pip3 install -r requirements.txt
+    python3 app.py  # serves on :5000
+    ```
+
+
+## Troubleshooting
+- Exporter returns 500 with fan speed string (e.g. `[N/A]`)
+  - This repo includes a fix to safely treat `[N/A]` as `null`. Rebuild the image to update:
+    ```
+    docker compose -f docker-compose.gpu-exporter.yml build --no-cache
+    docker compose -f docker-compose.gpu-exporter.yml up -d --force-recreate
+    ```
+- Exporter can’t access GPUs
+  - Ensure NVIDIA drivers are installed and `nvidia-smi` works on the host
+  - Install NVIDIA Container Toolkit and restart Docker
+- Frontend cannot reach exporter
+  - Confirm CORS is enabled (it is by default via Flask-CORS)
+  - Verify the API URL is reachable from your browser (not from within a container)
+  - Check firewall/security groups if remote
+- Port conflicts
+  - Change the host port mappings in the compose files or edit `vite.config.ts`
+
+
+## Security Notes
+- The exporter exposes low-level system info; restrict access on untrusted networks
+- Consider reverse proxies, auth, or network ACLs in production
+
+
+## Project Structure
+```
+.
+├── docker-compose.frontend.yml        # Frontend only
+├── docker-compose.gpu-exporter.yml    # Exporter only
+├── docker-compose.yml                 # Combined (frontend + exporter)
+├── Dockerfile                         # Frontend dev image (Vite)
+├── server/
+│   ├── app.py                         # Flask exporter
+│   ├── Dockerfile                     # Exporter image
+│   └── requirements.txt               # Flask deps
+└── src/                               # React app
+    ├── pages/Index.tsx                # Main dashboard
+    ├── components/GpuCard.tsx         # GPU card UI
+    ├── hooks/useNvidiaSmi.ts          # Fetch hook
+    └── types/gpu.ts                   # Types
+```
+
+
+## License
+MIT (or your preferred license)
