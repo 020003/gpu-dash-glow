@@ -32,6 +32,17 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
     return base;
   }, [series]);
 
+  const fiveMin = 5 * 60 * 1000;
+  const ticks = useMemo(() => {
+    if (chartData.length < 2) return [] as number[];
+    const start = chartData[0].t;
+    const end = chartData[chartData.length - 1].t;
+    const first = Math.ceil(start / fiveMin) * fiveMin;
+    const arr: number[] = [];
+    for (let t = first; t <= end; t += fiveMin) arr.push(t);
+    return arr;
+  }, [chartData]);
+
   return (
     <Card className="h-full">
       <CardHeader className="py-4">
@@ -51,9 +62,12 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="t"
+                  type="number"
+                  domain={["dataMin", "dataMax"]}
+                  ticks={ticks}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => new Date(v).toLocaleTimeString([], { hour12: false, minute: "2-digit", second: "2-digit" })}
+                  tickFormatter={(v) => new Date(v).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit" })}
                 />
                 <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
@@ -63,28 +77,65 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
             </ChartContainer>
 
             <ChartContainer
-              config={{ mem: { label: "Mem (%)", color: "hsl(var(--primary))" } }}
-              className="h-28 rounded-md border p-2"
+              config={{ memPct: { label: "Mem (%)", color: "hsl(var(--primary))" } }}
+              className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
-                <YAxis domain={[0, 100]} tickLine={false} axisLine={false} hide />
+                <XAxis
+                  dataKey="t"
+                  type="number"
+                  domain={["dataMin", "dataMax"]}
+                  ticks={ticks}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => new Date(v).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit" })}
+                />
+                <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
-                <Area type="monotone" dataKey="memPct" stroke="var(--color-mem)" strokeWidth={2} fill="var(--color-mem)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
+                <Area type="monotone" dataKey="memPct" stroke="var(--color-memPct)" strokeWidth={2} fill="var(--color-memPct)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
               </AreaChart>
             </ChartContainer>
 
             <ChartContainer
               config={{ temp: { label: "Temp (°C)", color: "hsl(var(--destructive))" } }}
-              className="h-28 rounded-md border p-2"
+              className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
-                <YAxis domain={[0, 'auto']} tickLine={false} axisLine={false} hide />
+                <XAxis
+                  dataKey="t"
+                  type="number"
+                  domain={["dataMin", "dataMax"]}
+                  ticks={ticks}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => new Date(v).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit" })}
+                />
+                <YAxis domain={[0, 'auto']} tickLine={false} axisLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Area type="monotone" dataKey="temp" stroke="var(--color-temp)" strokeWidth={2} fill="var(--color-temp)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
+              </AreaChart>
+            </ChartContainer>
+
+            <ChartContainer
+              config={{ power: { label: "Power (W)", color: "hsl(var(--secondary))" } }}
+              className="h-36 rounded-md border p-2"
+            >
+              <AreaChart data={chartData}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="t"
+                  type="number"
+                  domain={["dataMin", "dataMax"]}
+                  ticks={ticks}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(v) => new Date(v).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit" })}
+                />
+                <YAxis domain={[0, 'auto']} tickLine={false} axisLine={false} width={30} />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Area type="monotone" dataKey="power" stroke="var(--color-power)" strokeWidth={2} fill="var(--color-power)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
               </AreaChart>
             </ChartContainer>
           </div>
