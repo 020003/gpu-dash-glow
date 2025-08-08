@@ -2,6 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import type { GpuInfo } from "@/types/gpu";
+import type { GpuHistoryPoint } from "@/hooks/useGpuHistory";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
 
 function pct(a: number, b: number) {
   return Math.min(100, Math.max(0, Math.round((a / b) * 100)));
@@ -13,8 +16,15 @@ function chipColorByTemp(temp: number): "default" | "secondary" | "destructive" 
   return "default";
 }
 
-export function GpuCard({ info }: { info: GpuInfo }) {
+export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySeries?: GpuHistoryPoint[] }) {
   const memPct = pct(info.memory.used, info.memory.total);
+  const chartData = historySeries.map((p) => ({
+    t: p.t,
+    util: p.util,
+    memPct: Math.round((p.memUsed / Math.max(1, p.memTotal)) * 100),
+    temp: p.temp,
+    power: p.power,
+  }));
 
   return (
     <Card className="transition-transform duration-300 hover:-translate-y-0.5">
@@ -56,6 +66,54 @@ export function GpuCard({ info }: { info: GpuInfo }) {
             <div className="font-medium">{info.fan ?? 0}%</div>
           </div>
         </div>
+
+        {chartData.length > 1 ? (
+          <div className="space-y-3">
+            <div className="text-sm text-muted-foreground">History</div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <ChartContainer
+                config={{ util: { label: "Util (%)", color: "hsl(var(--brand))" } }}
+                className="h-28 rounded-md border p-2"
+              >
+                <AreaChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
+                  <YAxis domain={[0, 100]} tickLine={false} axisLine={false} hide />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area type="monotone" dataKey="util" stroke="var(--color-util)" fill="var(--color-util)" fillOpacity={0.15} />
+                </AreaChart>
+              </ChartContainer>
+
+              <ChartContainer
+                config={{ mem: { label: "Mem (%)", color: "hsl(var(--primary))" } }}
+                className="h-28 rounded-md border p-2"
+              >
+                <AreaChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
+                  <YAxis domain={[0, 100]} tickLine={false} axisLine={false} hide />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area type="monotone" dataKey="memPct" stroke="var(--color-mem)" fill="var(--color-mem)" fillOpacity={0.15} />
+                </AreaChart>
+              </ChartContainer>
+
+              <ChartContainer
+                config={{ temp: { label: "Temp (°C)", color: "hsl(var(--destructive))" } }}
+                className="h-28 rounded-md border p-2"
+              >
+                <AreaChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
+                  <YAxis domain={[0, 'auto']} tickLine={false} axisLine={false} hide />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Area type="monotone" dataKey="temp" stroke="var(--color-temp)" fill="var(--color-temp)" fillOpacity={0.15} />
+                </AreaChart>
+              </ChartContainer>
+            </div>
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground">History will appear as data refreshes.</div>
+        )}
 
         {info.processes && info.processes.length > 0 ? (
           <div>

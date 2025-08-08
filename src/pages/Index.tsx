@@ -10,6 +10,7 @@ import { useNvidiaSmi } from "@/hooks/useNvidiaSmi";
 import { GpuCard } from "@/components/GpuCard";
 import type { NvidiaSmiResponse } from "@/types/gpu";
 import { toast } from "sonner";
+import { useGpuHistory } from "@/hooks/useGpuHistory";
 
 const Index = () => {
   const [apiUrl, setApiUrl] = useState<string | null>(() => localStorage.getItem("nvidia_api_url"));
@@ -18,6 +19,7 @@ const Index = () => {
   const [intervalMs, setIntervalMs] = useState<number>(() => Number(localStorage.getItem("nvidia_interval_ms")) || 5000);
 
   const { data, isError, error, isFetching } = useNvidiaSmi({ apiUrl: demo ? null : apiUrl, demo, refetchIntervalMs: intervalMs });
+  const history = useGpuHistory({ data, intervalMs });
 
   useEffect(() => {
     if (isError) {
