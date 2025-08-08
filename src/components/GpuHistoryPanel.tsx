@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Line } from "recharts";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import type { GpuHistoryPoint } from "@/hooks/useGpuHistory";
 
 export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPoint[] }: { title?: string; series?: GpuHistoryPoint[] }) {
@@ -57,6 +57,26 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
   const configTemp = useMemo(() => ({ temp: { label: "Temp (°C)", color: "hsl(var(--destructive))" } }), []);
   const configPower = useMemo(() => ({ power: { label: "Power (W)", color: "hsl(var(--secondary))" } }), []);
 
+  // Stabilize X axis domain between refreshes and format ticks with stable refs
+  const xDomain = useMemo<[number | "dataMin" | "dataMax", number | "dataMin" | "dataMax"]>(() => (
+    ticks.length >= 2 ? [ticks[0], ticks[ticks.length - 1]] : ["dataMin", "dataMax"]
+  ), [ticks]);
+  const timeTickFormatter = useCallback((v: number) => new Date(v).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit" }), []);
+
+  // Keep Y domains stable by only increasing maxima (prevents rescaling flicker)
+  const [maxTemp, setMaxTemp] = useState(100);
+  const [maxPower, setMaxPower] = useState(200);
+  useEffect(() => {
+    if (!chartData.length) return;
+    let tMax = 0;
+    let pMax = 0;
+    for (const d of chartData) {
+      tMax = Math.max(tMax, d.temp ?? 0);
+      pMax = Math.max(pMax, d.power ?? 0);
+    }
+    if (tMax > maxTemp) setMaxTemp(Math.min(120, Math.ceil(tMax / 10) * 10));
+    if (pMax > maxPower) setMaxPower(Math.ceil(pMax / 50) * 50);
+  }, [chartData, maxTemp, maxPower]);
 
   return (
     <Card className="h-full glass-card">
@@ -75,11 +95,11 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
                 <XAxis
                   dataKey="t"
                   type="number"
-                  domain={["dataMin", "dataMax"]}
+                  domain={xDomain}
                   ticks={ticks}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => new Date(v).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit" })}
+                  tickFormatter={timeTickFormatter}
                 />
                 <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
@@ -97,11 +117,11 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
                 <XAxis
                   dataKey="t"
                   type="number"
-                  domain={["dataMin", "dataMax"]}
+                  domain={xDomain}
                   ticks={ticks}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => new Date(v).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit" })}
+                  tickFormatter={timeTickFormatter}
                 />
                 <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
@@ -118,13 +138,13 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
                 <XAxis
                   dataKey="t"
                   type="number"
-                  domain={["dataMin", "dataMax"]}
+                  domain={xDomain}
                   ticks={ticks}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => new Date(v).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit" })}
+                  tickFormatter={timeTickFormatter}
                 />
-                <YAxis domain={[0, 'auto']} tickLine={false} axisLine={false} width={30} />
+                <YAxis domain={[0, maxTemp]} tickLine={false} axisLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Area type="monotone" dataKey="temp" stroke="var(--color-temp)" strokeWidth={2} fill="var(--color-temp)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
               </AreaChart>
@@ -139,13 +159,13 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
                 <XAxis
                   dataKey="t"
                   type="number"
-                  domain={["dataMin", "dataMax"]}
+                  domain={xDomain}
                   ticks={ticks}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(v) => new Date(v).toLocaleTimeString([], { hour12: false, hour: "2-digit", minute: "2-digit" })}
+                  tickFormatter={timeTickFormatter}
                 />
-                <YAxis domain={[0, 'auto']} tickLine={false} axisLine={false} width={30} />
+                <YAxis domain={[0, maxPower]} tickLine={false} axisLine={false} width={30} />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Area type="monotone" dataKey="power" stroke="var(--color-power)" strokeWidth={2} fill="var(--color-power)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
               </AreaChart>
