@@ -12,6 +12,20 @@ import { GpuCard } from "@/components/GpuCard";
 import type { NvidiaSmiResponse } from "@/types/gpu";
 import { toast } from "sonner";
 import { useGpuHistory } from "@/hooks/useGpuHistory";
+import { usePowerHistory } from "@/hooks/usePowerHistory";
+import type { PowerPoint } from "@/hooks/usePowerHistory";
+
+// Integrate power (W) over time to kWh using trapezoidal rule
+function kwhFromSeries(series: PowerPoint[]): number {
+  let kwh = 0;
+  for (let i = 1; i < series.length; i++) {
+    const dt = series[i].t - series[i - 1].t; // ms
+    if (dt <= 0) continue;
+    const avgW = (series[i].power + series[i - 1].power) / 2;
+    kwh += (avgW * dt) / 3600000000; // 3.6e9 ms per kWh
+  }
+  return kwh;
+}
 
 const Index = () => {
   const [apiUrl, setApiUrl] = useState<string | null>(() => localStorage.getItem("nvidia_api_url"));
@@ -27,9 +41,11 @@ const Index = () => {
   });
 const [energyRate, setEnergyRate] = useState<number>(() => Number(localStorage.getItem("nvidia_energy_rate")) || 0);
 const [hostWatts, setHostWatts] = useState<Record<string, number>>({});
+const [hostKwh24, setHostKwh24] = useState<Record<string, number>>({});
 
   const { data, isError, error, isFetching } = useNvidiaSmi({ apiUrl: demo ? null : apiUrl, demo, refetchIntervalMs: intervalMs });
   const history = useGpuHistory({ data, intervalMs });
+  const singlePowerHist = usePowerHistory({ data, hostKey: demo ? "demo" : (apiUrl || "local"), retentionHours: 24 });
 
   useEffect(() => {
     if (isError) {
@@ -82,13 +98,21 @@ const [hostWatts, setHostWatts] = useState<Record<string, number>>({});
     });
   };
 
-  const HostSection = ({ host, onUpdate }: { host: string; onUpdate: (watts: number) => void }) => {
+  const HostSection = ({ host, onUpdate, onUpdateKwh }: { host: string; onUpdate: (watts: number) => void; onUpdateKwh: (kwh: number) => void }) => {
     const { data: hostData, isFetching: hostFetching } = useNvidiaSmi({ apiUrl: host, demo: false, refetchIntervalMs: intervalMs });
     const hostHistory = useGpuHistory({ data: hostData, intervalMs });
-  const gpusHost = (hostData as NvidiaSmiResponse | undefined)?.gpus ?? [];
-  const totalDraw = gpusHost.reduce((sum, g) => sum + (g.power?.draw || 0), 0);
-  useEffect(() => { onUpdate(totalDraw); }, [totalDraw, onUpdate]);
-  return (
+    const gpusHost = (hostData as NvidiaSmiResponse | undefined)?.gpus ?? [];
+    const totalDraw = gpusHost.reduce((sum, g) => sum + (g.power?.draw || 0), 0);
+    useEffect(() => { onUpdate(totalDraw); }, [totalDraw, onUpdate]);
+
+    const powerHist = usePowerHistory({ data: hostData, hostKey: host, retentionHours: 24 });
+    const hostKwh = useMemo(() => {
+      const ids = gpusHost.map((g) => g.uuid ?? String(g.id));
+      return ids.reduce((sum, id) => sum + kwhFromSeries(powerHist[id] || []), 0);
+    }, [gpusHost, powerHist]);
+    useEffect(() => { onUpdateKwh(hostKwh); }, [hostKwh, onUpdateKwh]);
+
+    return (
       <section aria-label={`GPU Grid for ${host}`} className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">{host}</h2>
@@ -122,6 +146,16 @@ const [hostWatts, setHostWatts] = useState<Record<string, number>>({});
   }, [hosts, demo, hostWatts, gpus]);
 
   const costHrAll = useMemo(() => (energyRate > 0 ? (totalWattsAll / 1000) * energyRate : 0), [totalWattsAll, energyRate]);
+
+  const totalKwh24All = useMemo(() => {
+    if (hosts.length > 0 && !demo) {
+      return Object.values(hostKwh24).reduce((s, v) => s + v, 0);
+    }
+    const ids = gpus.map((g) => g.uuid ?? String(g.id));
+    return ids.reduce((s, id) => s + kwhFromSeries(singlePowerHist[id] || []), 0);
+  }, [hosts, demo, hostKwh24, gpus, singlePowerHist]);
+
+  const cost24hAll = useMemo(() => (energyRate > 0 ? totalKwh24All * energyRate : 0), [totalKwh24All, energyRate]);
 
   const pageTitle = "NVIDIA SMI Dashboard";
   const description = "Monitor NVIDIA GPU utilization, memory, temperature and power in a modern dashboard.";
@@ -216,12 +250,18 @@ const [hostWatts, setHostWatts] = useState<Record<string, number>>({});
               <CardContent className="pt-0 text-sm text-muted-foreground flex gap-6">
                 <div><span className="font-medium text-foreground">{Math.round(totalWattsAll)}</span> W total</div>
                 <div>≈ <span className="font-medium text-foreground">${costHrAll.toFixed(2)}</span>/hr</div>
+                <div>24h: <span className="font-medium text-foreground">{totalKwh24All.toFixed(2)}</span> kWh{energyRate > 0 ? <> • $<span className="font-medium text-foreground">{cost24hAll.toFixed(2)}</span></> : null}</div>
               </CardContent>
             </Card>
           ) : null}
           {hosts.length > 0 && !demo ? (
             hosts.map((host) => (
-              <HostSection key={host} host={host} onUpdate={(w) => setHostWatts((prev) => ({ ...prev, [host]: w }))} />
+              <HostSection
+                key={host}
+                host={host}
+                onUpdate={(w) => setHostWatts((prev) => ({ ...prev, [host]: w }))}
+                onUpdateKwh={(k) => setHostKwh24((prev) => ({ ...prev, [host]: k }))}
+              />
             ))
           ) : gpus.length === 0 ? (
             <div className="text-center text-muted-foreground py-24">No GPU data available.</div>
