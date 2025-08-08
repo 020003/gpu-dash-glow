@@ -50,6 +50,10 @@ All colors MUST be HSL.
     /* Brand additions */
     --brand: 199 89% 48%; /* teal */
     --brand-2: 262 83% 58%; /* violet */
+
+    /* Typography */
+    --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+    --font-display: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   }
 
   .dark {
@@ -102,5 +106,10 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
   }
 }

@@ -44,9 +44,11 @@ const [energyRate, setEnergyRate] = useState<number>(() => Number(localStorage.g
 const [hostWatts, setHostWatts] = useState<Record<string, number>>({});
 const [hostKwh24, setHostKwh24] = useState<Record<string, number>>({});
 const [selectedMainId, setSelectedMainId] = useState<string | null>(null);
+const [historyMinutes, setHistoryMinutes] = useState<number>(() => Number(localStorage.getItem("nvidia_history_minutes")) || 10);
 
   const { data, isError, error, isFetching } = useNvidiaSmi({ apiUrl: demo ? null : apiUrl, demo, refetchIntervalMs: intervalMs });
-  const history = useGpuHistory({ data, intervalMs });
+  const maxPoints = useMemo(() => Math.max(60, Math.round((historyMinutes * 60 * 1000) / Math.max(1, intervalMs || 5000))), [historyMinutes, intervalMs]);
+  const history = useGpuHistory({ data, intervalMs, maxPoints });
   const singlePowerHist = usePowerHistory({ data, hostKey: demo ? "demo" : (apiUrl || "local"), retentionHours: 24 });
 
   useEffect(() => {
@@ -102,7 +104,7 @@ const [selectedMainId, setSelectedMainId] = useState<string | null>(null);
 
   const HostSection = ({ host, onUpdate, onUpdateKwh }: { host: string; onUpdate: (watts: number) => void; onUpdateKwh: (kwh: number) => void }) => {
     const { data: hostData, isFetching: hostFetching } = useNvidiaSmi({ apiUrl: host, demo: false, refetchIntervalMs: intervalMs });
-    const hostHistory = useGpuHistory({ data: hostData, intervalMs });
+    const hostHistory = useGpuHistory({ data: hostData, intervalMs, maxPoints });
     const gpusHost = (hostData as NvidiaSmiResponse | undefined)?.gpus ?? [];
     const totalDraw = gpusHost.reduce((sum, g) => sum + (g.power?.draw || 0), 0);
     useEffect(() => { onUpdate(totalDraw); }, [totalDraw, onUpdate]);
@@ -200,7 +202,7 @@ const [selectedMainId, setSelectedMainId] = useState<string | null>(null);
         <link rel="canonical" href={typeof window !== 'undefined' ? window.location.href : '/'} />
       </Helmet>
       <header className="border-b">
-        <div className="container py-8">
+        <div className="container py-8 animate-fade-in">
           <h1 className="text-3xl md:text-4xl font-semibold tracking-tight bg-gradient-to-r from-brand to-brand-2 bg-clip-text text-transparent">
             NVIDIA SMI Dashboard
           </h1>
@@ -249,6 +251,24 @@ const [selectedMainId, setSelectedMainId] = useState<string | null>(null);
                   localStorage.setItem("nvidia_energy_rate", String(rate));
                 }}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>History window</Label>
+              <Select value={String(historyMinutes)} onValueChange={(v) => {
+                const m = Number(v);
+                setHistoryMinutes(m);
+                localStorage.setItem("nvidia_history_minutes", String(m));
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="History window" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 min</SelectItem>
+                  <SelectItem value="30">30 min</SelectItem>
+                  <SelectItem value="60">1 hour</SelectItem>
+                  <SelectItem value="360">6 hours</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex gap-3">
               <Button className="w-full" onClick={handleAddHost}>Add host</Button>

@@ -17,7 +17,7 @@ export function GpuCard({ info, energyRate = 0, onSelect, selected = false }: { 
   const memPct = pct(info.memory.used, info.memory.total);
 
   return (
-    <Card onClick={onSelect} className={`transition-transform duration-300 hover:-translate-y-0.5 cursor-pointer ${selected ? "ring-2 ring-primary" : ""}`}>
+    <Card onClick={onSelect} className={`animate-fade-in hover-scale cursor-pointer ${selected ? "ring-2 ring-primary" : ""}`}>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
