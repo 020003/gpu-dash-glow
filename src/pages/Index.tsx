@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNvidiaSmi } from "@/hooks/useNvidiaSmi";
 import { GpuCard } from "@/components/GpuCard";
 import type { NvidiaSmiResponse } from "@/types/gpu";
@@ -24,7 +25,8 @@ const Index = () => {
       return [];
     }
   });
-  const [energyRate, setEnergyRate] = useState<number>(() => Number(localStorage.getItem("nvidia_energy_rate")) || 0);
+const [energyRate, setEnergyRate] = useState<number>(() => Number(localStorage.getItem("nvidia_energy_rate")) || 0);
+const [hostWatts, setHostWatts] = useState<Record<string, number>>({});
 
   const { data, isError, error, isFetching } = useNvidiaSmi({ apiUrl: demo ? null : apiUrl, demo, refetchIntervalMs: intervalMs });
   const history = useGpuHistory({ data, intervalMs });
@@ -80,18 +82,20 @@ const Index = () => {
     });
   };
 
-  const HostSection = ({ host }: { host: string }) => {
+  const HostSection = ({ host, onUpdate }: { host: string; onUpdate: (watts: number) => void }) => {
     const { data: hostData, isFetching: hostFetching } = useNvidiaSmi({ apiUrl: host, demo: false, refetchIntervalMs: intervalMs });
     const hostHistory = useGpuHistory({ data: hostData, intervalMs });
-    const gpusHost = (hostData as NvidiaSmiResponse | undefined)?.gpus ?? [];
-    return (
+  const gpusHost = (hostData as NvidiaSmiResponse | undefined)?.gpus ?? [];
+  const totalDraw = gpusHost.reduce((sum, g) => sum + (g.power?.draw || 0), 0);
+  useEffect(() => { onUpdate(totalDraw); }, [totalDraw, onUpdate]);
+  return (
       <section aria-label={`GPU Grid for ${host}`} className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">{host}</h2>
           <div className="text-xs text-muted-foreground flex items-center gap-2">
             {hostData?.timestamp ? <span>{new Date(hostData.timestamp).toLocaleString()}</span> : null}
-            <span>• {Math.round(gpusHost.reduce((sum, g) => sum + (g.power?.draw || 0), 0))} W</span>
-            {energyRate > 0 ? <span>• ${((gpusHost.reduce((sum, g) => sum + (g.power?.draw || 0), 0) / 1000) * energyRate).toFixed(2)}/hr</span> : null}
+            <span>• {Math.round(totalDraw)} W</span>
+            {energyRate > 0 ? <span>• ${((totalDraw / 1000) * energyRate).toFixed(2)}/hr</span> : null}
           </div>
         </div>
         {gpusHost.length === 0 ? (
@@ -109,6 +113,15 @@ const Index = () => {
   };
 
   const gpus = (data as NvidiaSmiResponse | undefined)?.gpus ?? [];
+
+  const totalWattsAll = useMemo(() => {
+    if (hosts.length > 0 && !demo) {
+      return Object.values(hostWatts).reduce((s, v) => s + v, 0);
+    }
+    return gpus.reduce((s, g) => s + (g.power?.draw || 0), 0);
+  }, [hosts, demo, hostWatts, gpus]);
+
+  const costHrAll = useMemo(() => (energyRate > 0 ? (totalWattsAll / 1000) * energyRate : 0), [totalWattsAll, energyRate]);
 
   const pageTitle = "NVIDIA SMI Dashboard";
   const description = "Monitor NVIDIA GPU utilization, memory, temperature and power in a modern dashboard.";
@@ -195,8 +208,21 @@ const Index = () => {
         <Separator />
 
         <section aria-label="GPU Grid" className="pb-10 space-y-8">
+          {energyRate > 0 ? (
+            <Card>
+              <CardHeader className="py-4">
+                <CardTitle className="text-base">Estimated Power Cost (all visible GPUs)</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-0 text-sm text-muted-foreground flex gap-6">
+                <div><span className="font-medium text-foreground">{Math.round(totalWattsAll)}</span> W total</div>
+                <div>≈ <span className="font-medium text-foreground">${costHrAll.toFixed(2)}</span>/hr</div>
+              </CardContent>
+            </Card>
+          ) : null}
           {hosts.length > 0 && !demo ? (
-            hosts.map((host) => <HostSection key={host} host={host} />)
+            hosts.map((host) => (
+              <HostSection key={host} host={host} onUpdate={(w) => setHostWatts((prev) => ({ ...prev, [host]: w }))} />
+            ))
           ) : gpus.length === 0 ? (
             <div className="text-center text-muted-foreground py-24">No GPU data available.</div>
           ) : (
