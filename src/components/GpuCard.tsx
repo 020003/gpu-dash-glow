@@ -17,7 +17,7 @@ function chipColorByTemp(temp: number): "default" | "secondary" | "destructive" 
   return "default";
 }
 
-export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySeries?: GpuHistoryPoint[] }) {
+export function GpuCard({ info, historySeries = [], energyRate = 0 }: { info: GpuInfo; historySeries?: GpuHistoryPoint[]; energyRate?: number }) {
   const memPct = pct(info.memory.used, info.memory.total);
   const chartData = useMemo(() => historySeries.map((p) => ({
     t: p.t,
@@ -67,6 +67,10 @@ export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySe
             <div className="font-medium">{info.fan ?? 0}%</div>
           </div>
         </div>
+
+        {energyRate > 0 ? (
+          <div className="text-xs text-muted-foreground">Est. cost/hr at ${energyRate}/kWh: ${(info.power.draw / 1000 * energyRate).toFixed(3)}</div>
+        ) : null}
 
         {chartData.length > 1 ? (
           <div className="space-y-3">

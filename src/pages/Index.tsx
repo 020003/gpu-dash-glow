@@ -24,6 +24,7 @@ const Index = () => {
       return [];
     }
   });
+  const [energyRate, setEnergyRate] = useState<number>(() => Number(localStorage.getItem("nvidia_energy_rate")) || 0);
 
   const { data, isError, error, isFetching } = useNvidiaSmi({ apiUrl: demo ? null : apiUrl, demo, refetchIntervalMs: intervalMs });
   const history = useGpuHistory({ data, intervalMs });
@@ -87,7 +88,11 @@ const Index = () => {
       <section aria-label={`GPU Grid for ${host}`} className="space-y-3">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-medium">{host}</h2>
-          <span className="text-xs text-muted-foreground">{hostData?.timestamp ? new Date(hostData.timestamp).toLocaleString() : ""}</span>
+          <div className="text-xs text-muted-foreground flex items-center gap-2">
+            {hostData?.timestamp ? <span>{new Date(hostData.timestamp).toLocaleString()}</span> : null}
+            <span>• {Math.round(gpusHost.reduce((sum, g) => sum + (g.power?.draw || 0), 0))} W</span>
+            {energyRate > 0 ? <span>• ${((gpusHost.reduce((sum, g) => sum + (g.power?.draw || 0), 0) / 1000) * energyRate).toFixed(2)}/hr</span> : null}
+          </div>
         </div>
         {gpusHost.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">No GPU data available.</div>
@@ -95,7 +100,7 @@ const Index = () => {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {gpusHost.map((gpu) => {
               const id = gpu.uuid ?? String(gpu.id);
-              return <GpuCard key={id} info={gpu} historySeries={hostHistory[id] ?? []} />;
+              return <GpuCard key={id} info={gpu} historySeries={hostHistory[id] ?? []} energyRate={energyRate} />;
             })}
           </div>
         )}
@@ -126,7 +131,7 @@ const Index = () => {
 
       <main className="container py-6 space-y-6">
         <section aria-label="Controls" className="rounded-lg border p-4 md:p-5">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 items-end">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5 items-end">
             <div className="space-y-2">
               <Label htmlFor="api-url">API URL (JSON)</Label>
               <Input id="api-url" placeholder="https://your-host:port/nvidia-smi.json" value={inputUrl} onChange={(e) => setInputUrl(e.target.value)} />
@@ -149,6 +154,22 @@ const Index = () => {
                   <SelectItem value="30000">30s</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Electricity rate ($/kWh)</Label>
+              <Input
+                type="number"
+                step="0.001"
+                inputMode="decimal"
+                placeholder="0.20"
+                value={energyRate ? String(energyRate) : ""}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  const rate = isNaN(v) ? 0 : v;
+                  setEnergyRate(rate);
+                  localStorage.setItem("nvidia_energy_rate", String(rate));
+                }}
+              />
             </div>
             <div className="flex gap-3">
               <Button className="w-full" onClick={handleAddHost}>Add host</Button>
@@ -182,7 +203,7 @@ const Index = () => {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {gpus.map((gpu) => {
                 const id = gpu.uuid ?? String(gpu.id);
-                return <GpuCard key={id} info={gpu} historySeries={history[id] ?? []} />;
+                return <GpuCard key={id} info={gpu} historySeries={history[id] ?? []} energyRate={energyRate} />;
               })}
             </div>
           )}
