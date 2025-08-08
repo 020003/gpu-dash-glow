@@ -28,7 +28,8 @@ def get_gpus():
         mem_total = int(float(parts[7] or 0))
         p_draw = int(float(parts[8] or 0))
         p_limit = int(float(parts[9] or 0))
-        fan = int(float(parts[10] or 0)) if len(parts) > 10 and parts[10] else None
+        fan_raw = parts[10] if len(parts) > 10 else ""
+        fan = int(float(fan_raw)) if fan_raw and fan_raw not in ("N/A", "[N/A]") else None
         gpus.append({
             "id": idx,
             "uuid": uuid,
