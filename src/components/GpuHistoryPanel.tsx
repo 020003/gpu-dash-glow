@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Line } from "recharts";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { GpuHistoryPoint } from "@/hooks/useGpuHistory";
 
 export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPoint[] }: { title?: string; series?: GpuHistoryPoint[] }) {
@@ -33,15 +33,30 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
   }, [series]);
 
   const fiveMin = 5 * 60 * 1000;
-  const ticks = useMemo(() => {
-    if (chartData.length < 2) return [] as number[];
+  const [ticks, setTicks] = useState<number[]>([]);
+  useEffect(() => {
+    if (chartData.length < 2) return;
     const start = chartData[0].t;
     const end = chartData[chartData.length - 1].t;
     const first = Math.ceil(start / fiveMin) * fiveMin;
+    const last = Math.floor(end / fiveMin) * fiveMin;
     const arr: number[] = [];
-    for (let t = first; t <= end; t += fiveMin) arr.push(t);
-    return arr;
+    for (let t = first; t <= last; t += fiveMin) arr.push(t);
+    setTicks((prev) => {
+      if (prev.length !== arr.length || prev.some((v, i) => v !== arr[i])) return arr;
+      return prev;
+    });
   }, [chartData]);
+
+  // Memoize chart color configs to avoid re-inserting <style> and causing flicker
+  const configUtil = useMemo(() => ({
+    util: { label: "Util (%)", color: "hsl(var(--brand))" },
+    utilAvg: { label: "Avg (≈60s)", color: "hsl(var(--muted-foreground))" },
+  }), []);
+  const configMem = useMemo(() => ({ memPct: { label: "Mem (%)", color: "hsl(var(--primary))" } }), []);
+  const configTemp = useMemo(() => ({ temp: { label: "Temp (°C)", color: "hsl(var(--destructive))" } }), []);
+  const configPower = useMemo(() => ({ power: { label: "Power (W)", color: "hsl(var(--secondary))" } }), []);
+
 
   return (
     <Card className="h-full glass-card">
@@ -52,10 +67,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
         {chartData.length > 0 ? (
           <div className="grid gap-3">
             <ChartContainer
-              config={{
-                util: { label: "Util (%)", color: "hsl(var(--brand))" },
-                utilAvg: { label: "Avg (≈60s)", color: "hsl(var(--muted-foreground))" },
-              }}
+              config={configUtil}
               className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
@@ -77,7 +89,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
             </ChartContainer>
 
             <ChartContainer
-              config={{ memPct: { label: "Mem (%)", color: "hsl(var(--primary))" } }}
+              config={configMem}
               className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
@@ -98,7 +110,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
             </ChartContainer>
 
             <ChartContainer
-              config={{ temp: { label: "Temp (°C)", color: "hsl(var(--destructive))" } }}
+              config={configTemp}
               className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
@@ -119,7 +131,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
             </ChartContainer>
 
             <ChartContainer
-              config={{ power: { label: "Power (W)", color: "hsl(var(--secondary))" } }}
+              config={configPower}
               className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
