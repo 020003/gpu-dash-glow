@@ -17,6 +17,13 @@ const Index = () => {
   const [inputUrl, setInputUrl] = useState<string>(apiUrl ?? "");
   const [demo, setDemo] = useState<boolean>(() => localStorage.getItem("nvidia_demo") === "1");
   const [intervalMs, setIntervalMs] = useState<number>(() => Number(localStorage.getItem("nvidia_interval_ms")) || 5000);
+  const [hosts, setHosts] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem("nvidia_hosts") || "[]");
+    } catch {
+      return [];
+    }
+  });
 
   const { data, isError, error, isFetching } = useNvidiaSmi({ apiUrl: demo ? null : apiUrl, demo, refetchIntervalMs: intervalMs });
   const history = useGpuHistory({ data, intervalMs });
@@ -49,6 +56,51 @@ const Index = () => {
     const ms = Number(value);
     setIntervalMs(ms);
     localStorage.setItem("nvidia_interval_ms", String(ms));
+  };
+
+  const handleAddHost = () => {
+    const cleaned = inputUrl.trim();
+    if (!cleaned) return;
+    setHosts((prev) => {
+      const next = Array.from(new Set([...prev, cleaned]));
+      localStorage.setItem("nvidia_hosts", JSON.stringify(next));
+      return next;
+    });
+    setApiUrl(cleaned);
+    localStorage.setItem("nvidia_api_url", cleaned);
+    toast.success("Host added.");
+  };
+
+  const handleRemoveHost = (host: string) => {
+    setHosts((prev) => {
+      const next = prev.filter((h) => h !== host);
+      localStorage.setItem("nvidia_hosts", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const HostSection = ({ host }: { host: string }) => {
+    const { data: hostData, isFetching: hostFetching } = useNvidiaSmi({ apiUrl: host, demo: false, refetchIntervalMs: intervalMs });
+    const hostHistory = useGpuHistory({ data: hostData, intervalMs });
+    const gpusHost = (hostData as NvidiaSmiResponse | undefined)?.gpus ?? [];
+    return (
+      <section aria-label={`GPU Grid for ${host}`} className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-medium">{host}</h2>
+          <span className="text-xs text-muted-foreground">{hostData?.timestamp ? new Date(hostData.timestamp).toLocaleString() : ""}</span>
+        </div>
+        {gpusHost.length === 0 ? (
+          <div className="text-center text-muted-foreground py-12">No GPU data available.</div>
+        ) : (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {gpusHost.map((gpu) => {
+              const id = gpu.uuid ?? String(gpu.id);
+              return <GpuCard key={id} info={gpu} historySeries={hostHistory[id] ?? []} />;
+            })}
+          </div>
+        )}
+      </section>
+    );
   };
 
   const gpus = (data as NvidiaSmiResponse | undefined)?.gpus ?? [];
@@ -99,22 +151,39 @@ const Index = () => {
               </Select>
             </div>
             <div className="flex gap-3">
-              <Button className="w-full" onClick={handleSave}>Save URL</Button>
+              <Button className="w-full" onClick={handleAddHost}>Add host</Button>
               <Button variant="secondary" className="w-full" onClick={() => window.location.reload()} disabled={isFetching}>Refresh</Button>
             </div>
           </div>
         </section>
 
+        {hosts.length > 0 && (
+          <section aria-label="Hosts List" className="container">
+            <div className="text-sm text-muted-foreground mb-2">Hosts</div>
+            <div className="flex flex-wrap gap-2">
+              {hosts.map((h) => (
+                <div key={h} className="flex items-center gap-2 rounded-md border px-2 py-1">
+                  <a href={h} className="text-sm underline underline-offset-2" target="_blank" rel="noreferrer">{h}</a>
+                  <Button size="sm" variant="secondary" onClick={() => handleRemoveHost(h)}>Remove</Button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         <Separator />
 
-        <section aria-label="GPU Grid" className="pb-10">
-          {gpus.length === 0 ? (
+        <section aria-label="GPU Grid" className="pb-10 space-y-8">
+          {hosts.length > 0 && !demo ? (
+            hosts.map((host) => <HostSection key={host} host={host} />)
+          ) : gpus.length === 0 ? (
             <div className="text-center text-muted-foreground py-24">No GPU data available.</div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {gpus.map((gpu) => (
-                <GpuCard key={gpu.uuid ?? gpu.id} info={gpu} />
-              ))}
+              {gpus.map((gpu) => {
+                const id = gpu.uuid ?? String(gpu.id);
+                return <GpuCard key={id} info={gpu} historySeries={history[id] ?? []} />;
+              })}
             </div>
           )}
         </section>
