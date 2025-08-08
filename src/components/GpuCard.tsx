@@ -67,7 +67,7 @@ export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySe
           </div>
         </div>
 
-        {chartData.length > 1 ? (
+        {chartData.length > 0 ? (
           <div className="space-y-3">
             <div className="text-sm text-muted-foreground">History</div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -80,7 +80,7 @@ export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySe
                   <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
                   <YAxis domain={[0, 100]} tickLine={false} axisLine={false} hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="util" stroke="var(--color-util)" fill="var(--color-util)" fillOpacity={0.15} />
+                  <Area type="monotone" dataKey="util" stroke="var(--color-util)" fill="var(--color-util)" fillOpacity={0.15} dot={{ r: 1.5 }} />
                 </AreaChart>
               </ChartContainer>
 
@@ -93,7 +93,7 @@ export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySe
                   <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
                   <YAxis domain={[0, 100]} tickLine={false} axisLine={false} hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="memPct" stroke="var(--color-mem)" fill="var(--color-mem)" fillOpacity={0.15} />
+                  <Area type="monotone" dataKey="memPct" stroke="var(--color-mem)" fill="var(--color-mem)" fillOpacity={0.15} dot={{ r: 1.5 }} />
                 </AreaChart>
               </ChartContainer>
 
@@ -106,7 +106,7 @@ export function GpuCard({ info, historySeries = [] }: { info: GpuInfo; historySe
                   <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
                   <YAxis domain={[0, 'auto']} tickLine={false} axisLine={false} hide />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="temp" stroke="var(--color-temp)" fill="var(--color-temp)" fillOpacity={0.15} />
+                  <Area type="monotone" dataKey="temp" stroke="var(--color-temp)" fill="var(--color-temp)" fillOpacity={0.15} dot={{ r: 1.5 }} />
                 </AreaChart>
               </ChartContainer>
             </div>
