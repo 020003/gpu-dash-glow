@@ -43,19 +43,44 @@ def get_gpus():
             "processes": []
         })
 
-    # attach running processes
+    # attach running processes (try multiple queries for driver compatibility)
     try:
-        pq = "gpu_uuid,pid,process_name,used_memory"
-        pout = run_cmd(f"nvidia-smi --query-compute-apps={pq} --format=csv,noheader,nounits")
-        for line in pout.splitlines():
-            parts = [p.strip() for p in line.split(",")]
-            if len(parts) < 4:
+        pout = ""
+        queries = [
+            "gpu_uuid,pid,process_name,used_memory",
+            "gpu_uuid,pid,process_name,used_gpu_memory",
+        ]
+        for pq in queries:
+            try:
+                pout = run_cmd(f"nvidia-smi --query-compute-apps={pq} --format=csv,noheader,nounits")
+                if pout and "No running" not in pout:
+                    break
+            except subprocess.CalledProcessError:
                 continue
-            gpu_uuid, pid, pname, pmem = parts[0], int(parts[1]), parts[2], int(float(parts[3] or 0))
-            for g in gpus:
-                if g.get("uuid") == gpu_uuid:
-                    g["processes"].append({"pid": pid, "name": pname, "memory": pmem})
-    except subprocess.CalledProcessError:
+
+        if pout:
+            for line in pout.splitlines():
+                if not line or "No running" in line or "Not Supported" in line:
+                    continue
+                parts = [p.strip() for p in line.split(",")]
+                if len(parts) < 4:
+                    continue
+                gpu_uuid = parts[0]
+                try:
+                    pid = int(parts[1])
+                except ValueError:
+                    continue
+                pname = parts[2]
+                # handle N/A or parsing issues gracefully
+                try:
+                    pmem = int(float(parts[3])) if parts[3] not in ("N/A", "[N/A]") else 0
+                except ValueError:
+                    pmem = 0
+                for g in gpus:
+                    if g.get("uuid") == gpu_uuid:
+                        g["processes"].append({"pid": pid, "name": pname, "memory": pmem})
+    except Exception:
+        # swallow any process parsing errors to keep endpoint healthy
         pass
 
     return gpus
