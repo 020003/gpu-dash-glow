@@ -72,7 +72,7 @@ export function GpuCard({ info, historySeries = [], energyRate = 0 }: { info: Gp
           <div className="text-xs text-muted-foreground">Est. cost/hr at ${energyRate}/kWh: ${(info.power.draw / 1000 * energyRate).toFixed(3)}</div>
         ) : null}
 
-        {chartData.length > 1 ? (
+        {chartData.length > 0 ? (
           <div className="space-y-3">
             <div className="text-sm text-muted-foreground">History</div>
             <div className="grid gap-3 sm:grid-cols-3">
