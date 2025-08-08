@@ -61,53 +61,7 @@ export function GpuCard({ info, energyRate = 0, onSelect, selected = false }: { 
           <div className="text-xs text-muted-foreground">Est. cost/hr at ${energyRate}/kWh: ${(info.power.draw / 1000 * energyRate).toFixed(3)}</div>
         ) : null}
 
-        {chartData.length > 0 ? (
-          <div className="space-y-3">
-            <div className="text-sm text-muted-foreground">History</div>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <ChartContainer
-                config={{ util: { label: "Util (%)", color: "hsl(var(--brand))" } }}
-                className="h-28 rounded-md border p-2"
-              >
-                <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
-                  <YAxis domain={[0, 100]} tickLine={false} axisLine={false} hide />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="util" stroke="var(--color-util)" strokeWidth={2} fill="var(--color-util)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
-                </AreaChart>
-              </ChartContainer>
-
-              <ChartContainer
-                config={{ mem: { label: "Mem (%)", color: "hsl(var(--primary))" } }}
-                className="h-28 rounded-md border p-2"
-              >
-                <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
-                  <YAxis domain={[0, 100]} tickLine={false} axisLine={false} hide />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="memPct" stroke="var(--color-mem)" strokeWidth={2} fill="var(--color-mem)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
-                </AreaChart>
-              </ChartContainer>
-
-              <ChartContainer
-                config={{ temp: { label: "Temp (°C)", color: "hsl(var(--destructive))" } }}
-                className="h-28 rounded-md border p-2"
-              >
-                <AreaChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="t" tickLine={false} axisLine={false} hide />
-                  <YAxis domain={[0, 'auto']} tickLine={false} axisLine={false} hide />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area type="monotone" dataKey="temp" stroke="var(--color-temp)" strokeWidth={2} fill="var(--color-temp)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
-                </AreaChart>
-              </ChartContainer>
-            </div>
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground">History will appear as data refreshes.</div>
-        )}
+        {/* History charts moved to right-side panel; removed inline charts here. */}
 
         {info.processes && info.processes.length > 0 ? (
           <div>
