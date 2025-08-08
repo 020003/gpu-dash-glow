@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useNvidiaSmi } from "@/hooks/useNvidiaSmi";
 import { GpuCard } from "@/components/GpuCard";
+import { GpuHistoryPanel } from "@/components/GpuHistoryPanel";
 import type { NvidiaSmiResponse } from "@/types/gpu";
 import { toast } from "sonner";
 import { useGpuHistory } from "@/hooks/useGpuHistory";
@@ -42,6 +43,7 @@ const Index = () => {
 const [energyRate, setEnergyRate] = useState<number>(() => Number(localStorage.getItem("nvidia_energy_rate")) || 0);
 const [hostWatts, setHostWatts] = useState<Record<string, number>>({});
 const [hostKwh24, setHostKwh24] = useState<Record<string, number>>({});
+const [selectedMainId, setSelectedMainId] = useState<string | null>(null);
 
   const { data, isError, error, isFetching } = useNvidiaSmi({ apiUrl: demo ? null : apiUrl, demo, refetchIntervalMs: intervalMs });
   const history = useGpuHistory({ data, intervalMs });
@@ -112,6 +114,19 @@ const [hostKwh24, setHostKwh24] = useState<Record<string, number>>({});
     }, [gpusHost, powerHist]);
     useEffect(() => { onUpdateKwh(hostKwh); }, [hostKwh, onUpdateKwh]);
 
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    useEffect(() => {
+      if (gpusHost.length > 0) {
+        const firstId = gpusHost[0].uuid ?? String(gpusHost[0].id);
+        setSelectedId((prev) => prev && gpusHost.some(g => (g.uuid ?? String(g.id)) === prev) ? prev : firstId);
+      } else {
+        setSelectedId(null);
+      }
+    }, [gpusHost]);
+
+    const selectedGpu = useMemo(() => gpusHost.find(g => (g.uuid ?? String(g.id)) === selectedId), [gpusHost, selectedId]);
+    const series = selectedId ? (hostHistory[selectedId] ?? []) : [];
+
     return (
       <section aria-label={`GPU Grid for ${host}`} className="space-y-3">
         <div className="flex items-center justify-between">
@@ -125,11 +140,16 @@ const [hostKwh24, setHostKwh24] = useState<Record<string, number>>({});
         {gpusHost.length === 0 ? (
           <div className="text-center text-muted-foreground py-12">No GPU data available.</div>
         ) : (
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {gpusHost.map((gpu) => {
-              const id = gpu.uuid ?? String(gpu.id);
-              return <GpuCard key={id} info={gpu} historySeries={hostHistory[id] ?? []} energyRate={energyRate} />;
-            })}
+          <div className="grid gap-6 lg:grid-cols-4">
+            <div className="lg:col-span-3">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+                {gpusHost.map((gpu) => {
+                  const id = gpu.uuid ?? String(gpu.id);
+                  return <GpuCard key={id} info={gpu} energyRate={energyRate} onSelect={() => setSelectedId(id)} selected={selectedId === id} />;
+                })}
+              </div>
+            </div>
+            <GpuHistoryPanel title={selectedGpu ? `${selectedGpu.name} • GPU ${selectedGpu.id} History` : "History"} series={series} />
           </div>
         )}
       </section>
@@ -156,6 +176,18 @@ const [hostKwh24, setHostKwh24] = useState<Record<string, number>>({});
   }, [hosts, demo, hostKwh24, gpus, singlePowerHist]);
 
   const cost24hAll = useMemo(() => (energyRate > 0 ? totalKwh24All * energyRate : 0), [totalKwh24All, energyRate]);
+
+  useEffect(() => {
+    if (gpus.length > 0) {
+      const firstId = gpus[0].uuid ?? String(gpus[0].id);
+      setSelectedMainId((prev) => prev && gpus.some(g => (g.uuid ?? String(g.id)) === prev) ? prev : firstId);
+    } else {
+      setSelectedMainId(null);
+    }
+  }, [gpus]);
+
+  const selectedGpuMain = useMemo(() => gpus.find(g => (g.uuid ?? String(g.id)) === selectedMainId), [gpus, selectedMainId]);
+  const seriesMain = selectedMainId ? (history[selectedMainId] ?? []) : [];
 
   const pageTitle = "NVIDIA SMI Dashboard";
   const description = "Monitor NVIDIA GPU utilization, memory, temperature and power in a modern dashboard.";
@@ -266,11 +298,16 @@ const [hostKwh24, setHostKwh24] = useState<Record<string, number>>({});
           ) : gpus.length === 0 ? (
             <div className="text-center text-muted-foreground py-24">No GPU data available.</div>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {gpus.map((gpu) => {
-                const id = gpu.uuid ?? String(gpu.id);
-                return <GpuCard key={id} info={gpu} historySeries={history[id] ?? []} energyRate={energyRate} />;
-              })}
+            <div className="grid gap-6 lg:grid-cols-4">
+              <div className="lg:col-span-3">
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3">
+                  {gpus.map((gpu) => {
+                    const id = gpu.uuid ?? String(gpu.id);
+                    return <GpuCard key={id} info={gpu} energyRate={energyRate} onSelect={() => setSelectedMainId(id)} selected={selectedMainId === id} />;
+                  })}
+                </div>
+              </div>
+              <GpuHistoryPanel title={selectedGpuMain ? `${selectedGpuMain.name} • GPU ${selectedGpuMain.id} History` : "History"} series={seriesMain} />
             </div>
           )}
         </section>

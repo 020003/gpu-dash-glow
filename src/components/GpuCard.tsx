@@ -2,10 +2,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import type { GpuInfo } from "@/types/gpu";
-import type { GpuHistoryPoint } from "@/hooks/useGpuHistory";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid } from "recharts";
-import { useMemo } from "react";
 
 function pct(a: number, b: number) {
   return Math.min(100, Math.max(0, Math.round((a / b) * 100)));
@@ -17,18 +13,11 @@ function chipColorByTemp(temp: number): "default" | "secondary" | "destructive" 
   return "default";
 }
 
-export function GpuCard({ info, historySeries = [], energyRate = 0 }: { info: GpuInfo; historySeries?: GpuHistoryPoint[]; energyRate?: number }) {
+export function GpuCard({ info, energyRate = 0, onSelect, selected = false }: { info: GpuInfo; energyRate?: number; onSelect?: () => void; selected?: boolean }) {
   const memPct = pct(info.memory.used, info.memory.total);
-  const chartData = useMemo(() => historySeries.map((p) => ({
-    t: p.t,
-    util: p.util,
-    memPct: Math.round((p.memUsed / Math.max(1, p.memTotal)) * 100),
-    temp: p.temp,
-    power: p.power,
-  })), [historySeries]);
 
   return (
-    <Card className="transition-transform duration-300 hover:-translate-y-0.5">
+    <Card onClick={onSelect} className={`transition-transform duration-300 hover:-translate-y-0.5 cursor-pointer ${selected ? "ring-2 ring-primary" : ""}`}>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
