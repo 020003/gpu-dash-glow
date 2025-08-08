@@ -88,6 +88,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
           <div className="grid gap-3">
             <ChartContainer
               config={configUtil}
+              responsiveDebounce={200}
               className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
@@ -102,7 +103,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
                   tickFormatter={timeTickFormatter}
                 />
                 <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={30} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip isAnimationActive={false} cursor={false} content={<ChartTooltipContent />} />
                 <Area type="monotone" dataKey="util" stroke="var(--color-util)" strokeWidth={2} fill="var(--color-util)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
                 <Line type="monotone" dataKey="utilAvg" stroke="var(--color-utilAvg)" strokeWidth={2} dot={false} isAnimationActive={false} />
               </AreaChart>
@@ -110,6 +111,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
 
             <ChartContainer
               config={configMem}
+              responsiveDebounce={200}
               className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
@@ -124,13 +126,14 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
                   tickFormatter={timeTickFormatter}
                 />
                 <YAxis domain={[0, 100]} tickLine={false} axisLine={false} width={30} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                 <ChartTooltip isAnimationActive={false} cursor={false} content={<ChartTooltipContent />} />
                 <Area type="monotone" dataKey="memPct" stroke="var(--color-memPct)" strokeWidth={2} fill="var(--color-memPct)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
               </AreaChart>
             </ChartContainer>
 
             <ChartContainer
               config={configTemp}
+              responsiveDebounce={200}
               className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
@@ -145,13 +148,14 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
                   tickFormatter={timeTickFormatter}
                 />
                 <YAxis domain={[0, maxTemp]} tickLine={false} axisLine={false} width={30} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                 <ChartTooltip isAnimationActive={false} cursor={false} content={<ChartTooltipContent />} />
                 <Area type="monotone" dataKey="temp" stroke="var(--color-temp)" strokeWidth={2} fill="var(--color-temp)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
               </AreaChart>
             </ChartContainer>
 
             <ChartContainer
               config={configPower}
+              responsiveDebounce={200}
               className="h-36 rounded-md border p-2"
             >
               <AreaChart data={chartData}>
@@ -166,7 +170,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
                   tickFormatter={timeTickFormatter}
                 />
                 <YAxis domain={[0, maxPower]} tickLine={false} axisLine={false} width={30} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip isAnimationActive={false} cursor={false} content={<ChartTooltipContent />} />
                 <Area type="monotone" dataKey="power" stroke="var(--color-power)" strokeWidth={2} fill="var(--color-power)" fillOpacity={0.2} isAnimationActive={false} animationDuration={0} />
               </AreaChart>
             </ChartContainer>
