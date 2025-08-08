@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import type { GpuInfo } from "@/types/gpu";
+import { memo } from "react";
 
 function pct(a: number, b: number) {
   return Math.min(100, Math.max(0, Math.round((a / b) * 100)));
@@ -13,11 +14,11 @@ function chipColorByTemp(temp: number): "default" | "secondary" | "destructive" 
   return "default";
 }
 
-export function GpuCard({ info, energyRate = 0, onSelect, selected = false }: { info: GpuInfo; energyRate?: number; onSelect?: () => void; selected?: boolean }) {
+export const GpuCard = memo(function GpuCard({ info, energyRate = 0, onSelect, selected = false }: { info: GpuInfo; energyRate?: number; onSelect?: () => void; selected?: boolean }) {
   const memPct = pct(info.memory.used, info.memory.total);
 
   return (
-    <Card onClick={onSelect} className={`glass-card animate-fade-in hover-scale cursor-pointer ${selected ? "ring-2 ring-primary" : ""}`}>
+    <Card onClick={onSelect} className={`glass-card hover-scale cursor-pointer ${selected ? "ring-2 ring-primary" : ""}`}>
       <CardHeader>
         <div className="flex items-start justify-between gap-3">
           <div>
@@ -81,6 +82,6 @@ export function GpuCard({ info, energyRate = 0, onSelect, selected = false }: { 
       </CardContent>
     </Card>
   );
-}
+});
 
 export default GpuCard;

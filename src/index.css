@@ -141,5 +141,10 @@ All colors MUST be HSL.
 }
 
 @layer components {
-  .glass-card { @apply bg-card/70 backdrop-blur-md border border-border/60 shadow-md; }
+  .glass-card { @apply bg-card/70 backdrop-blur-md border border-border/60 shadow-md; 
+    transform: translateZ(0); 
+    will-change: transform; 
+    backface-visibility: hidden;
+    contain: paint;
+  }
 }
