@@ -1,0 +1,30 @@
+version: "3.8"
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    environment:
+      - HOST=0.0.0.0
+    volumes:
+      - .:/app
+      - /app/node_modules
+    network_mode: bridge
+
+  gpu-exporter:
+    build:
+      context: ./server
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    # Ensure GPUs are accessible in non-Swarm Docker Compose
+    gpus: all
+    # Share host PID namespace so nvidia-smi/NVML can see host processes
+    pid: "host"
+    # If you are on older runtimes, uncomment the following line instead of `gpus: all`:
+    # runtime: nvidia
