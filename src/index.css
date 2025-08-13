@@ -121,15 +121,15 @@
   }
 
   .progress-fill.normal {
-    background: linear-gradient(90deg, hsl(var(--emerald)), hsl(var(--gpu-blue)));
+    background: linear-gradient(90deg, rgb(var(--gpu-green)), rgb(var(--gpu-blue)));
   }
 
   .progress-fill.warning {
-    background: linear-gradient(90deg, hsl(var(--gpu-orange)), hsl(var(--gpu-red)));
+    background: linear-gradient(90deg, rgb(var(--gpu-yellow)), rgb(var(--gpu-orange)));
   }
 
   .progress-fill.critical {
-    background: linear-gradient(90deg, hsl(var(--gpu-red)), hsl(var(--gpu-red)));
+    background: linear-gradient(90deg, rgb(var(--gpu-red)), rgb(var(--gpu-orange)));
   }
 
   .control-panel {
@@ -151,19 +151,19 @@
   }
   
   .text-gpu-blue {
-    color: hsl(var(--blue));
+    color: rgb(var(--gpu-blue));
   }
   
   .text-gpu-purple {
-    color: hsl(var(--purple));
+    color: rgb(var(--gpu-purple));
   }
   
   .text-gpu-orange {
-    color: hsl(var(--orange));
+    color: rgb(var(--gpu-orange));
   }
   
   .text-gpu-red {
-    color: hsl(var(--red));
+    color: rgb(var(--gpu-red));
   }
 
   .bg-emerald {
