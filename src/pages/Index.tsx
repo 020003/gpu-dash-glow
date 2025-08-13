@@ -33,7 +33,7 @@ const Index = () => {
   const [apiUrl, setApiUrl] = useState<string | null>(() => localStorage.getItem("nvidia_api_url"));
   const [inputUrl, setInputUrl] = useState<string>(apiUrl ?? "");
   const [demo, setDemo] = useState<boolean>(() => localStorage.getItem("nvidia_demo") === "1");
-  const [intervalMs, setIntervalMs] = useState<number>(() => Number(localStorage.getItem("nvidia_interval_ms")) || 3000);
+  const [intervalMs, setIntervalMs] = useState<number>(() => Number(localStorage.getItem("nvidia_interval_ms")) || 5000);
   const [hosts, setHosts] = useState<string[]>(() => {
     try {
       return JSON.parse(localStorage.getItem("nvidia_hosts") || "[]");

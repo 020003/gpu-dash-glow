@@ -1,4 +1,4 @@
-import { memo, useEffect, useState } from "react";
+import { memo, useEffect, useState, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Zap, TrendingUp, TrendingDown } from "lucide-react";
@@ -32,7 +32,7 @@ const CHART_COLORS = [
   "rgb(236, 72, 153)",   // Pink
 ];
 
-const MAX_DATA_POINTS = 30; // Keep last 30 data points
+const MAX_DATA_POINTS = 20; // Keep last 20 data points for better performance
 
 export const PowerUsageChart = memo(function PowerUsageChart({ 
   hosts, 
@@ -43,8 +43,17 @@ export const PowerUsageChart = memo(function PowerUsageChart({
   const [chartData, setChartData] = useState<PowerDataPoint[]>([]);
   const [totalPower, setTotalPower] = useState(0);
   const [trend, setTrend] = useState<"up" | "down" | "stable">("stable");
+  const lastUpdateRef = useRef<number>(0);
 
   useEffect(() => {
+    // Throttle updates to prevent performance issues
+    const now = Date.now();
+    if (now - lastUpdateRef.current < 2000) return;
+    lastUpdateRef.current = now;
+    
+    // Skip update if refresh interval is too fast
+    if (refreshInterval < 3000) return;
+    
     // Build new data point from current host data
     const newPoint: PowerDataPoint = {
       timestamp: new Date().toISOString(),
@@ -84,7 +93,7 @@ export const PowerUsageChart = memo(function PowerUsageChart({
       
       return updated;
     });
-  }, [hosts, hostData]);
+  }, [hosts, hostData, refreshInterval]);
 
   const formatYAxis = (value: number) => `${value}W`;
   

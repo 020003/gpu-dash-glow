@@ -35,7 +35,7 @@ export default function Dashboard() {
     localStorage.getItem("gpu_monitor_demo") === "true"
   );
   const [refreshInterval, setRefreshInterval] = useState<number>(() => 
-    parseInt(localStorage.getItem("gpu_monitor_refresh_interval") || "3000")
+    parseInt(localStorage.getItem("gpu_monitor_refresh_interval") || "5000")
   );
   const [energyRate, setEnergyRate] = useState<number>(() => 
     parseFloat(localStorage.getItem("gpu_monitor_energy_rate") || "0")
