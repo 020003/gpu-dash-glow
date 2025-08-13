@@ -41,9 +41,6 @@ export function HostManager({ hosts, setHosts, onHostStatusChange }: HostManager
 
     setIsAdding(true);
 
-    // Simulate a brief delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 300));
-
     try {
       const newHost: Host = {
         url,

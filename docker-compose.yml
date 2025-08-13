@@ -23,8 +23,16 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility
     # Ensure GPUs are accessible in non-Swarm Docker Compose
-    gpus: all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     # Share host PID namespace so nvidia-smi/NVML can see host processes
     pid: "host"
-    # If you are on older runtimes, uncomment the following line instead of `gpus: all`:
-    # runtime: nvidia
+    # Additional privileges for process detection
+    privileged: true
+    volumes:
+      - /proc:/host/proc:ro

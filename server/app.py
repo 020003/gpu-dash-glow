@@ -16,10 +16,13 @@ app = Flask(__name__)
 FLASK_HOST = os.getenv('FLASK_HOST', '0.0.0.0')
 FLASK_PORT = int(os.getenv('FLASK_PORT', '5000'))
 FLASK_DEBUG = os.getenv('FLASK_DEBUG', 'false').lower() == 'true'
-CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:8080,http://localhost:3000').split(',')
+CORS_ORIGINS = os.getenv('CORS_ORIGINS', '*')
 
-# Configure CORS with environment-based origins
-CORS(app, origins=CORS_ORIGINS)
+# Configure CORS with environment-based origins  
+if CORS_ORIGINS == '*':
+    CORS(app, origins='*')
+else:
+    CORS(app, origins=CORS_ORIGINS.split(','))
 
 def run_cmd(cmd: str) -> str:
     return subprocess.check_output(cmd, shell=True, text=True).strip()

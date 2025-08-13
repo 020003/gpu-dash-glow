@@ -18,5 +18,9 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    # If not using Swarm, you may need to uncomment the following line instead:
-    # runtime: nvidia
+    # Share host PID namespace so nvidia-smi/NVML can see host processes
+    pid: "host"
+    # Additional privileges for process detection
+    privileged: true
+    volumes:
+      - /proc:/host/proc:ro
