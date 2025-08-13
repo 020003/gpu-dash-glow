@@ -4,6 +4,7 @@ import { useNvidiaSmi } from "@/hooks/useNvidiaSmi";
 import { HostManager } from "@/components/HostManager";
 import { MultiHostOverview } from "@/components/MultiHostOverview";
 import { HostTab } from "@/components/HostTab";
+import { PowerUsageChart } from "@/components/PowerUsageChart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Monitor, BarChart3, Settings, Cog } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,6 +49,11 @@ export default function Dashboard() {
   });
   const [hostsData, setHostsData] = useState<HostData[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  
+  // Create a Map for the PowerUsageChart
+  const hostDataMap = new Map(
+    hostsData.map(host => [host.url, { gpus: host.gpus, timestamp: host.timestamp }])
+  );
 
   // Demo mode API query
   const { data: demoData, isError: demoError, isFetching: demoFetching } = useNvidiaSmi({
@@ -228,6 +234,12 @@ export default function Dashboard() {
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
             <MultiHostOverview hostsData={hostsData} energyRate={energyRate} />
+            <PowerUsageChart 
+              hosts={hosts} 
+              hostData={hostDataMap} 
+              refreshInterval={refreshInterval}
+              energyRate={energyRate}
+            />
           </TabsContent>
 
           {/* Individual Host Tabs */}

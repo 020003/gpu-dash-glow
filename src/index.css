@@ -165,6 +165,14 @@
   .text-gpu-red {
     color: rgb(var(--gpu-red));
   }
+  
+  .text-gpu-green {
+    color: rgb(var(--gpu-green));
+  }
+  
+  .text-gpu-yellow {
+    color: rgb(var(--gpu-yellow));
+  }
 
   .bg-emerald {
     background-color: hsl(var(--emerald));
