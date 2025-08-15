@@ -1,8 +1,23 @@
-# GPU Monitor - Multi-Host NVIDIA GPU Monitoring Dashboard
+# 🖥️ GPU Monitor Dashboard
 
-A modern, real-time GPU monitoring dashboard that provides comprehensive insights into NVIDIA GPU performance across multiple hosts. Built with React, TypeScript, and Flask.
+**A modern, real-time GPU monitoring dashboard with AI/ML integration**
 
-![GPU Monitor Dashboard](https://img.shields.io/badge/status-active-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue) ![Security](https://img.shields.io/badge/security-sanitized-green)
+Monitor NVIDIA GPUs and Ollama AI models across multiple hosts from a single, comprehensive dashboard. Built with React, TypeScript, and Flask for production-ready deployments.
+
+![GPU Monitor Dashboard](https://img.shields.io/badge/status-active-brightgreen) ![License](https://img.shields.io/badge/license-MIT-blue) ![Security](https://img.shields.io/badge/security-sanitized-green) ![Docker](https://img.shields.io/badge/docker-supported-blue) ![TypeScript](https://img.shields.io/badge/TypeScript-ready-blue)
+
+## ✨ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| 🖥️ **Multi-Host GPU Monitoring** | Monitor GPUs across multiple servers from one dashboard |
+| 🤖 **AI/ML Integration** | Auto-discover and monitor Ollama AI model servers |
+| 📊 **Real-Time Metrics** | Live GPU utilization, temperature, memory, and power monitoring |
+| 🔄 **Auto-Refresh** | Configurable refresh intervals (2s - 30s) |
+| 🐳 **Docker Ready** | Complete containerized deployment with Docker Compose |
+| 🔒 **Production Security** | Environment-based configuration with no hardcoded secrets |
+| 📱 **Responsive Design** | Works seamlessly on desktop, tablet, and mobile |
+| ⚡ **Performance Optimized** | Built with modern React, TypeScript, and Vite |
 
 ## 🚀 Features
 
@@ -17,6 +32,12 @@ A modern, real-time GPU monitoring dashboard that provides comprehensive insight
 - **Process Tracking**: Live monitoring of GPU processes with memory usage
 - **Energy Cost Calculation**: Track energy costs with configurable rates ($/kWh)
 - **Historical Overview**: Aggregated statistics across all connected hosts
+
+### AI/ML Integration
+- **Ollama Auto-Discovery**: Automatic detection and monitoring of Ollama AI model servers
+- **Model Management**: Track deployed models, storage usage, and performance metrics
+- **Performance Analytics**: Monitor tokens/second, request counts, and response times
+- **Resource Correlation**: View GPU usage alongside AI model performance
 
 ### Modern UI/UX
 - **Responsive Design**: Works on desktop, tablet, and mobile devices
@@ -41,6 +62,7 @@ A modern, real-time GPU monitoring dashboard that provides comprehensive insight
 ### Required Dependencies
 - Docker (optional, for containerized deployment)
 - Modern web browser (Chrome, Firefox, Safari, Edge)
+- Ollama (optional, for AI model monitoring)
 
 ## 🛠 Installation
 
@@ -194,9 +216,61 @@ GET /api/hosts                # List all configured hosts
 POST /api/hosts               # Add a new host
 DELETE /api/hosts/<url>       # Remove a host
 
+# Ollama Integration
+POST /api/ollama/discover     # Discover Ollama on a host
+
 # Health Check
 GET /api/health               # Server health status
 ```
+
+## 🤖 Ollama Integration
+
+The dashboard includes built-in support for monitoring Ollama AI model servers alongside GPU metrics.
+
+### Features
+
+- **Auto-Discovery**: Automatically detects Ollama instances running on GPU hosts
+- **Model Inventory**: Lists all installed models with size and metadata
+- **Performance Metrics**: Real-time tokens/second, request counts, and latency
+- **Resource Correlation**: Shows GPU usage alongside AI model performance
+- **Multi-Host Support**: Monitor Ollama across multiple servers
+
+### How It Works
+
+1. **Automatic Scanning**: The dashboard scans common ports (11434, 8080, 3000, 5000) for Ollama services
+2. **CORS Bypass**: Uses backend proxy to avoid browser CORS restrictions
+3. **Real-time Metrics**: Fetches performance data from Ollama's `/api/ps` and `/api/tags` endpoints
+4. **Integrated Display**: Shows Ollama metrics directly in host tabs alongside GPU data
+
+### Supported Metrics
+
+- **Model Statistics**: Count, total storage size, average model size
+- **Performance**: Tokens per second, response latency, request counts
+- **Status**: Active models, VRAM usage, error rates
+- **Storage**: Model sizes, total storage consumption
+
+### Configuration
+
+No additional configuration is required. The dashboard will automatically discover and monitor Ollama instances on any configured GPU host.
+
+## 🚀 Quick Start
+
+Get up and running in less than 2 minutes:
+
+```bash
+# 1. Clone the repository
+git clone <your-repository-url>
+cd gpu-dash-glow
+
+# 2. Start with Docker (recommended)
+docker-compose up -d
+
+# 3. Access the dashboard
+# Frontend: http://localhost:8080
+# API: http://localhost:5000
+```
+
+That's it! The dashboard will auto-discover any Ollama instances and start monitoring your GPUs.
 
 ## 📊 Supported GPU Metrics
 

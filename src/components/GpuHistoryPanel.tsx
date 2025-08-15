@@ -26,7 +26,7 @@ export function GpuHistoryPanel({ title = "History", series = [] as GpuHistoryPo
       sum += base[i].util;
       if (i >= windowPts) sum -= base[i - windowPts].util;
       // approx 60s simple moving average
-      (base[i] as any).utilAvg = Math.round(sum / Math.min(i + 1, windowPts));
+      (base[i] as { utilAvg?: number }).utilAvg = Math.round(sum / Math.min(i + 1, windowPts));
     }
 
     return base;

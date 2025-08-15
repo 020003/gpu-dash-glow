@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { Zap, TrendingUp, TrendingDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import type { GpuInfo } from "@/types/gpu";
 
 interface PowerDataPoint {
   timestamp: string;
@@ -16,7 +17,7 @@ interface PowerUsageChartProps {
     name: string;
     isConnected: boolean;
   }>;
-  hostData: Map<string, any>;
+  hostData: Map<string, { gpus: GpuInfo[]; timestamp?: string }>;
   refreshInterval: number;
   energyRate?: number;
 }
@@ -66,7 +67,7 @@ export const PowerUsageChart = memo(function PowerUsageChart({
       if (host.isConnected && hostData.has(host.url)) {
         const data = hostData.get(host.url);
         if (data?.gpus) {
-          const hostPower = data.gpus.reduce((sum: number, gpu: any) => 
+          const hostPower = data.gpus.reduce((sum: number, gpu: GpuInfo) => 
             sum + (gpu.power?.draw || 0), 0
           );
           newPoint[host.name || host.url] = hostPower;

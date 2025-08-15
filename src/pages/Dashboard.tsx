@@ -6,13 +6,13 @@ import { MultiHostOverview } from "@/components/MultiHostOverview";
 import { HostTab } from "@/components/HostTab";
 import { PowerUsageChart } from "@/components/PowerUsageChart";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Monitor, BarChart3, Settings, Cog } from "lucide-react";
+import { Monitor, BarChart3, Settings, Cog, Bot } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import type { NvidiaSmiResponse } from "@/types/gpu";
+import type { NvidiaSmiResponse, GpuInfo } from "@/types/gpu";
 
 interface Host {
   url: string;
@@ -24,9 +24,15 @@ interface HostData {
   url: string;
   name: string;
   isConnected: boolean;
-  gpus: any[];
+  gpus: GpuInfo[];
   timestamp?: string;
   error?: string;
+  ollama?: {
+    isAvailable: boolean;
+    models: any[];
+    performanceMetrics: any;
+    recentRequests: any[];
+  };
 }
 
 export default function Dashboard() {
@@ -54,6 +60,7 @@ export default function Dashboard() {
   const hostDataMap = new Map(
     hostsData.map(host => [host.url, { gpus: host.gpus, timestamp: host.timestamp }])
   );
+  
 
   // Demo mode API query
   const { data: demoData, isError: demoError, isFetching: demoFetching } = useNvidiaSmi({
@@ -62,6 +69,34 @@ export default function Dashboard() {
     refetchIntervalMs: demo ? refreshInterval : 0
   });
 
+
+  // Helper function to check if Ollama is available on a host
+  const checkOllamaAvailability = async (hostUrl: string) => {
+    try {
+      // Use backend proxy to avoid CORS issues
+      const apiUrl = import.meta.env.VITE_API_URL || window.location.origin.replace(':8080', ':5000');
+      const response = await fetch(`${apiUrl}/api/ollama/discover`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ hostUrl }),
+        signal: AbortSignal.timeout(10000) // 10 second timeout
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (result.isAvailable) {
+          return result;
+        }
+      }
+      
+      return { isAvailable: false };
+    } catch (error) {
+      return { isAvailable: false };
+    }
+  };
 
   // Helper function to fetch data from a host
   const fetchHostData = async (host: Host): Promise<HostData> => {
@@ -72,13 +107,30 @@ export default function Dashboard() {
       }
       const data = await response.json() as NvidiaSmiResponse;
       
+      // Check for Ollama availability on this host
+      const ollamaInfo = await checkOllamaAvailability(host.url);
+      
       return {
         url: host.url,
         name: host.name,
         isConnected: true,
         gpus: data.gpus || [],
         timestamp: data.timestamp,
-        error: undefined
+        error: undefined,
+        ollama: ollamaInfo.isAvailable ? {
+          isAvailable: true,
+          models: ollamaInfo.models || [],
+          performanceMetrics: ollamaInfo.performanceMetrics || {
+            tokensPerSecond: 0,
+            modelLoadTimeMs: 0,
+            totalDurationMs: 0,
+            promptProcessingMs: 0,
+            averageLatency: 0,
+            requestCount: 0,
+            errorCount: 0
+          },
+          recentRequests: ollamaInfo.recentRequests || []
+        } : undefined
       };
     } catch (error) {
       return {
@@ -115,12 +167,23 @@ export default function Dashboard() {
     const results = await Promise.all(hosts.map(fetchHostData));
     setHostsData(results);
     
-    // Update host connection status
+    // Update host connection status without overwriting hosts state
+    // This prevents the glitch where newly added hosts disappear
     const updatedHosts = hosts.map(host => {
       const result = results.find(r => r.url === host.url);
       return { ...host, isConnected: result?.isConnected || false };
     });
-    setHosts(updatedHosts);
+    
+    // Only update hosts if the connection status actually changed
+    const hasChanges = updatedHosts.some((updatedHost, index) => 
+      hosts[index].isConnected !== updatedHost.isConnected
+    );
+    
+    if (hasChanges) {
+      setHosts(updatedHosts);
+      // Also update localStorage to persist connection status
+      localStorage.setItem("gpu_monitor_hosts", JSON.stringify(updatedHosts));
+    }
   };
 
   // Auto-refresh data
@@ -161,6 +224,8 @@ export default function Dashboard() {
 
   const connectedHosts = hostsData.filter(h => h.isConnected);
   const totalGpus = connectedHosts.reduce((sum, host) => sum + host.gpus.length, 0);
+  const totalOllamaModels = hostsData.reduce((sum, host) => sum + (host.ollama?.models.length || 0), 0);
+  const hostsWithOllama = hostsData.filter(h => h.ollama?.isAvailable).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -187,20 +252,26 @@ export default function Dashboard() {
             
             <div className="flex items-center space-x-4">
               <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Hosts:</span> {connectedHosts.length}/{hostsData.length}
+                <span className="font-medium">GPU Hosts:</span> {connectedHosts.length}/{hostsData.length}
               </div>
               <div className="text-sm text-muted-foreground">
-                <span className="font-medium">Total GPUs:</span> {totalGpus}
+                <span className="font-medium">GPUs:</span> {totalGpus}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">Ollama:</span> {hostsWithOllama}/{hostsData.length}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                <span className="font-medium">AI Models:</span> {totalOllamaModels}
               </div>
               <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-sm ${
-                connectedHosts.length > 0 
+                (connectedHosts.length > 0 || hostsWithOllama > 0)
                   ? "bg-emerald/10 text-emerald" 
                   : "bg-red-500/10 text-red-500"
               }`}>
                 <div className={`w-2 h-2 rounded-full ${
-                  connectedHosts.length > 0 ? "bg-emerald animate-pulse-slow" : "bg-red-500"
+                  (connectedHosts.length > 0 || hostsWithOllama > 0) ? "bg-emerald animate-pulse-slow" : "bg-red-500"
                 }`} />
-                {connectedHosts.length > 0 ? "Online" : "Offline"}
+                {(connectedHosts.length > 0 || hostsWithOllama > 0) ? "Online" : "Offline"}
               </div>
             </div>
           </div>
@@ -255,6 +326,7 @@ export default function Dashboard() {
                 timestamp={host.timestamp}
                 energyRate={energyRate}
                 onRefresh={fetchAllHostsData}
+                ollama={host.ollama}
               />
             </TabsContent>
           ))}
@@ -317,11 +389,17 @@ export default function Dashboard() {
               </CardContent>
             </Card>
 
-            {/* Host Management */}
+            {/* GPU Host Management */}
             {!demo && (
               <HostManager 
                 hosts={hosts} 
-                setHosts={setHosts}
+                setHosts={(newHosts) => {
+                  setHosts(newHosts);
+                  // Trigger immediate data fetch for new hosts
+                  if (newHosts.length > hosts.length) {
+                    fetchAllHostsData();
+                  }
+                }}
                 onHostStatusChange={() => {}} 
               />
             )}
@@ -335,9 +413,18 @@ export default function Dashboard() {
           <div className="flex items-center justify-between text-sm text-muted-foreground">
             <div>GPU Monitor v2.0 - Multi-Host Professional GPU Monitoring</div>
             <div className="flex items-center space-x-4">
-              {totalGpus > 0 && (
-                <div>
-                  Total: {totalGpus} GPU{totalGpus !== 1 ? 's' : ''} across {connectedHosts.length} host{connectedHosts.length !== 1 ? 's' : ''}
+              {(totalGpus > 0 || totalOllamaModels > 0) && (
+                <div className="flex items-center gap-4">
+                  {totalGpus > 0 && (
+                    <span>
+                      {totalGpus} GPU{totalGpus !== 1 ? 's' : ''} across {connectedHosts.length} host{connectedHosts.length !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                  {totalOllamaModels > 0 && (
+                    <span>
+                      {totalOllamaModels} AI model{totalOllamaModels !== 1 ? 's' : ''} on {hostsWithOllama} host{hostsWithOllama !== 1 ? 's' : ''}
+                    </span>
+                  )}
                 </div>
               )}
             </div>

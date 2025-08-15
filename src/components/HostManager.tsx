@@ -34,6 +34,14 @@ export function HostManager({ hosts, setHosts, onHostStatusChange }: HostManager
       return;
     }
 
+    // Validate URL format
+    try {
+      new URL(url);
+    } catch {
+      toast.error("Please enter a valid URL format (e.g., http://server:5000/nvidia-smi.json)");
+      return;
+    }
+
     if (hosts.some(host => host.url === url)) {
       toast.error("Host already exists");
       return;
@@ -42,6 +50,27 @@ export function HostManager({ hosts, setHosts, onHostStatusChange }: HostManager
     setIsAdding(true);
 
     try {
+      // Try to add to backend first if available
+      const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+      try {
+        const response = await fetch(`${apiUrl}/api/hosts`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ url, name })
+        });
+        
+        if (!response.ok && response.status !== 404) {
+          // Backend exists but returned an error
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to add host to backend');
+        }
+      } catch (backendError) {
+        // Backend might not be available, continue with local storage only
+        console.log('Backend host management not available, using local storage only');
+      }
+
       const newHost: Host = {
         url,
         name,
@@ -55,9 +84,12 @@ export function HostManager({ hosts, setHosts, onHostStatusChange }: HostManager
       setNewHostUrl("");
       setNewHostName("");
       toast.success(`Added host: ${name}`);
+      
+      // Test connection immediately
+      testHostConnection(url);
     } catch (error) {
       console.error("Error adding host:", error);
-      toast.error("Failed to add host");
+      toast.error(error instanceof Error ? error.message : "Failed to add host");
     } finally {
       setIsAdding(false);
     }
@@ -66,17 +98,32 @@ export function HostManager({ hosts, setHosts, onHostStatusChange }: HostManager
   const removeHost = async (url: string) => {
     setRemovingHost(url);
 
-    // Simulate a brief delay to show loading state
-    await new Promise(resolve => setTimeout(resolve, 200));
-
     try {
+      // Try to remove from backend first if available
+      const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
+      try {
+        const encodedUrl = encodeURIComponent(url);
+        const response = await fetch(`${apiUrl}/api/hosts/${encodedUrl}`, {
+          method: 'DELETE',
+        });
+        
+        if (!response.ok && response.status !== 404) {
+          // Backend exists but returned an error
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to remove host from backend');
+        }
+      } catch (backendError) {
+        // Backend might not be available, continue with local storage only
+        console.log('Backend host management not available, using local storage only');
+      }
+
       const updatedHosts = hosts.filter(host => host.url !== url);
       setHosts(updatedHosts);
       localStorage.setItem("gpu_monitor_hosts", JSON.stringify(updatedHosts));
       toast.success("Host removed");
     } catch (error) {
       console.error("Error removing host:", error);
-      toast.error("Failed to remove host");
+      toast.error(error instanceof Error ? error.message : "Failed to remove host");
     } finally {
       setRemovingHost(null);
     }
@@ -88,6 +135,25 @@ export function HostManager({ hosts, setHosts, onHostStatusChange }: HostManager
       return parsedUrl.hostname + (parsedUrl.port ? `:${parsedUrl.port}` : '');
     } catch {
       return url.split('/')[2] || url;
+    }
+  };
+
+  const testHostConnection = async (url: string) => {
+    try {
+      const response = await fetch(url);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.gpus) {
+          toast.success(`Successfully connected to ${extractHostName(url)}`);
+          onHostStatusChange(url, true);
+        }
+      } else {
+        toast.warning(`Host added but not reachable: ${response.status}`);
+        onHostStatusChange(url, false);
+      }
+    } catch (error) {
+      toast.warning(`Host added but not reachable. Will retry on next refresh.`);
+      onHostStatusChange(url, false);
     }
   };
 
